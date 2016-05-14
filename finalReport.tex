@@ -1,0 +1,254 @@
+\documentclass[conference]{IEEEtran}
+
+\ifCLASSOPTIONcompsoc
+  % IEEE Computer Society needs nocompress option
+  % requires cite.sty v4.0 or later (November 2003)
+  % \usepackage[nocompress]{cite}
+\else
+  % normal IEEE
+  % \usepackage{cite}
+\fi
+\ifCLASSINFOpdf
+ \usepackage[pdftex]{graphicx}
+  % declare the path(s) where your graphic files are
+  \graphicspath{/Users/nehajothi/Downloads/bare_jrnl_compsoc/}
+  % and their extensions so you won't have to specify these with
+  % every instance of \includegraphics
+  \DeclareGraphicsExtensions{.pdf,.jpeg,.png}
+\else
+  
+\fi
+\hyphenation{op-tical net-works semi-conduc-tor}
+
+
+\begin{document}
+%
+% paper title
+% can use linebreaks \\ within to get better formatting as desired
+% Do not put math or special symbols in the title.
+\title{An Approach to Evaluate OpenMP and MPI Parallel Programming Models}
+
+
+% author names and affiliations
+% use a multiple column layout for up to three different
+% affiliations
+\author{\IEEEauthorblockN{Neha Jothi\\}
+\IEEEauthorblockA{Computer Science\\
+University of Arizona\\
+Tucson, Arizona\\
+Email: nehaj@email.arizona.edu}}
+\maketitle
+
+% The paper headers
+\markboth{CS620, Spring~2016}%
+{Shell \MakeLowercase{\textit{et al.}}: Bare Demo of IEEEtran.cls for Computer Society Journals}
+
+
+\begin{abstract}
+The study of the Kuiper belt, which is a disc-shaped region that includes celestial bodies beyond the orbit of Neptune, generally involves simulation due to the expansive sample size, commonly in the order of tens of thousands. The case study discussed in this paper analyzes the resonance of a Trans Neptunian Object (TNO) to identify its behavior due to Neptune$'$s gravitational forces. Currently, these analysis codes are written in serial Perl and take approximately 40 minutes, for a sample set of mere 30 test particles, when run on the HPC system (SGI Altix UV 1000 machine with 112 nodes using single core) hosted at the University of Arizona, Tucson. First, we converted the serial Perl code to serial C++ to attain better performance, and to provide some groundwork for parallelization. Furthermore, the code is parallelized using OpenMP and MPI to further increase performance. We find that the serial C++, OpenMP and MPI implementations achieved good speedup with respect to the serial Perl code, the highest being the MPI implementation with speedup 12x. It was also noticed that the case study being used had serious load balance issues and the impact of which is discussed with respect to each of these implementations. It is seen that OpenMP cannot cope with load imbalance, whereas MPI seemingly does better in certain scenarios.\\
+\end{abstract}
+
+% Note that keywords are not normally used for peerreview papers.
+\begin{IEEEkeywords}
+High Performance Computing, Kuiper belt orbital resonance, MPI, OpenMP
+\end{IEEEkeywords}
+
+
+% make the title area
+\maketitle
+
+
+\IEEEdisplaynontitleabstractindextext
+
+\IEEEpeerreviewmaketitle
+
+
+
+\section{Introduction}
+
+\IEEEPARstart{}In the last decade, the supercomputers' supporting role has grown to accurately and quantitatively connect disparate phenomena in basic and applied science research [1]. One such is the filed of Planetary Physics. The sheer size and complexity of the scientific applications in the field of planetary physics require supercomputing to realize such computation efficiently. Moreover, the complexity of such simulations cannot be bound by a mere office desktop.  The case study used is the Asteroid Orbit Research Problem by Scientist Kat Volk of the Planetary Science Department, University of Arizona [2]. It is written in serial Perl and takes approximately 40 minutes, for a sample set of mere 30 test particles, when run on the HPC system (SGI Altix UV 1000 machine with 112 nodes using single core) hosted at the University of Arizona, Tucson. This problem has been around for a long time and has been worked on by many planetary scientists over time. Since Perl was used for writing the actual simulation code in the early days due to the ease of parsing, the same was used for the actual computation of simulation. We see that, though powerful, Perl does not do well with high intensity computation. This falls short with the performance expectations of today and has to be sped up since the sample input size for the simulation is growing exponentially due to the development in telescope technology leading to the detection of higher number of objects that make up the sample set. This is the motivation for the need to speedup such applications. This need formulated the use of supercomputers to enable the planetary physics applications to achieve high performance. However, we are at a point now where making a computer as fast as possible does not answer the performance issues. There has to be an alternative path.
+
+\IEEEPARstart{}Initially, software speedup was achieved by using a CPU with a higher clock speed, which significantly increased each passing year. The rate of growth of performance scaling for CPUs does not seem to fit the prediction model devised by Gordon Moore and has reached a point of saturation since the early 2000s. This led to a significant paradigm shift from the sequential approach of executing a process, to essentially perform processes in parallel and led to the development of several parallel programming models, which leverage the power of both multi-core and multi-processors. If you want your application to benefit from the continued exponential throughput advances in new processors, it will need to be a well-written parallel program. Concurrency is the next major revolution in how we write software [3]. In the case of scientific applications, it is of utmost importance to harness this increasing amount of computational power. To attain this, the scientific codes must achieve higher and higher levels of parallelism [4]. 
+
+\IEEEPARstart{}The scientific application to be parallelized has to be computation intensive and data dense to accurately delineate the benefits of parallelism, one such is the Asteroid Orbit Research Problem by Scientist Kat Volk of the Planetary Science Department, University of Arizona. This planetary sciences application is the case study used in this project. It is written in serial Perl and takes approximately 40 minutes, for a sample set of mere 30 test particles, when run on the HPC system (SGI Altix UV 1000 machine with 112 nodes using single core) hosted at the University of Arizona, Tucson. The execution time would tend to increase in an exponential manner with the increase of the dataset and the density of computation. The solution is to parallelize the sequential scientific application such that it can exploit the increasing computational capability of the multi-core and many-core machines. But, among this plethora of programming models, which one would best suit the problem in hand? Moreover, how would we compare and evaluate these models? One such approach is discussed here, where we consider two popular parallel programming models - OpenMP and MPI, and compare how their respective parallel versions of the sequential scientific application perform based on time for execution, speedup obtained, effort required, etc. These parallel programming models were selected based on their inherent difference in level of parallelism such as, OpenMP handles multi-core parallelism whereas MPI handles many-core parallelism. 
+
+\IEEEPARstart{}In this paper, we explore effective ways to improve the performance of the asteroid orbital simulation. First, we analyzed the actual program to identify the hotspots. Next, we converted the program from serial Perl to serial C++ to provide some groundwork for parallelization. Then, with the C++ code as the base, we parallelized the serial program by using OpenMP and MPI. We see that all our three implementations provide good speedup over the serial Perl program. The speedup obtained for serial C++, OpenMP and MPI, with respect to the serial Perl,  are 8x, 10x and 12x respectively. However, the overall execution was dominated by the load imbalance issues of the simulation. \\
+
+\section{Background}
+
+\subsection{Related Work}
+There has been constant effort in the parallel computing community to parallelize the existing scientific applications to achieve better performance. Ciegis et all, in their book [5], discuss parallelizing a sparse linear system solver to be used in a distributed grid environment. M. Guo proposed the idea of using OpenMP for automatic parallelization and optimization techniques for irregular scientific computing in his work [6]. Zhong et all list out measures to identify the hidden loop level parallelism in sequential applications [7], using which, they parallelized several benchmarks. Raman et all discuss the concept of speculative parallelization using software multi-threaded transactions for the scientific applications in their work [8]. 
+
+\subsection{Case Study}
+Parallelizing a scientific application is a cumbersome task since it requires in-depth knowledge of the underlying functioning of the program code and the ability to discern and exploit the potential parallelism opportunities. Therefore, in this section we describe the dynamics of the Asteroid Orbit Research Problem. The research problem analyzes the resonance of a Trans Neptunian Object (TNO) to identify its behavior due to Neptune's gravitational forces. This is done by computing the mean motion resonance of the TNO with respect to Neptune. Mean motion resonance occurs when two orbiting bodies exert a regular, periodic gravitational influence on each other, usually due to their orbital periods being related by a ratio of two small integers. An example is Pluto in the Kuiper belt. Pluto is in a 3:2 ($p:q$) mean motion resonance with Neptune because Pluto's orbital period, P, is $(3/2)*(P_{Neptune})$. The resonant motion can be described by a resonant angle  $\phi$ that relates the orbital position of a TNO and Neptune [2]. When an object is in resonance with Neptune, the angle $\phi$ would librate around a central value rather than freely circulate between 0 and 2$\pi$. This is the intended result of the Asteroid Orbit Research Problem. The results are shown in Figure 1. Each of these dots resemble the value of $\phi$ calculate in a specified window and can be computed in parallel since the dots are inherently independent of each other. Figure 1(a) shows a test particle that is in resonance with Neptune whereas 1(b) is not. 
+
+
+\begin{figure}
+  \centering
+  \begin{tabular}{@{}c@{}}
+    \includegraphics[scale = 0.30]{res1} \\[\abovecaptionskip]
+    \small (a) 
+  \end{tabular}
+
+%  \vspace{\floatsep}
+
+  \begin{tabular}{@{}c@{}}
+    \includegraphics[scale = 0.3]{res2} \\[\abovecaptionskip]
+    \small (b) 
+  \end{tabular}
+
+  \caption{Example output graphs denoting the resonance based on the calculation of $\phi$.\newline Figure (a) is considered more stable than Figure (b) based on its resonance pattern}
+  \end{figure}
+
+
+% needed in second column of first page if using \IEEEpubid
+%\IEEEpubidadjcol
+
+
+
+\subsection{The Programming Models}
+
+\subsubsection{OpenMP} 
+Open Multi-Processing is a parallel programming model that supports on-chip parallelism with multi-core processors. It is a portable programming interface for shared memory parallel computers [9]. It supports pragma based loop parallelization that relieves the programmers of the burden of creating, initializing and maintaining the threads of execution. This is handled by the OpenMP compiler and the runtime library. 
+
+\subsubsection{MPI} 
+Message Passing Interface is a standardized and portable message-passing system  that was designed to support the distributed memory architecture. The processes are distributed across nodes and communicate by passing messages between each other. Both point-to-point and collective communication are supported. In MPI, each process is referred to as a rank. 
+\begin{figure}
+\centering
+ \begin{tabular}{@{}c@{}}
+    \includegraphics[scale = 0.35]{mem1.png} \\[\abovecaptionskip]
+    \small (a) OpenMP 
+  \end{tabular}
+   \begin{tabular}{@{}c@{}}
+    \includegraphics[height = 2cm]{mem2.png} \\[\abovecaptionskip]
+    \small (a) MPI
+  \end{tabular}
+\caption{Different memory architectures.}
+\end{figure}
+
+Considering the presence of multiple existing complementary parallel modules and libraries within Perl that can be used to parallelize the code such as Parallel::ForkManager, which is a parallel processing fork manager, and PerlDSM [10], which is a distributed shared memory system for Perl, the choice of these three models depended on their extensive popularity in the parallel computing community. Also, each of these models represent different memory architecture as shown in Figure 2, which would provide a compelling mode of comparison to determine which architecture would best suit our problem code. The current scientific application code is sequential and thereby does not leverage the performance capabilities of the current high-end machines. With these three diverse models, the Scientist has the choice to pick the programming model that would provide the type of memory characteristics, which can produce the best gain in application performance. \\
+
+
+
+\section{Implementation}
+
+\subsection{Experimental Setup}
+The experiment was run on Intel Core i7 (2.8GHz) processor having 4 cores with 2 threads per core. Hyper-threading was disabled. There were a total of 10 runs for each implementation.
+
+\subsection{Perl Code Analysis}
+The serial Perl code is written by the Scientist, Kat Volk. It has 259 source lines of code(SLOC) and takes approximately 40 minutes on a single core, for a sample set of mere 30 test particles, when run on the HPC system at the University of Arizona, Tucson. Moreover, when run on the Intel Core i7 (2.8GHz) processor having 4 cores, it takes 374.059 seconds. This can be attributed to the fact that the HPC system is old and has considerable variance, perhaps due to interference. The actual cause for this is difficult to comprehend since we do not have the control for that system. Whereas, the machine with Intel Core i7 (2.8GHz) processor is isolated and is in our control with absolutely no interference. Hence, we use this machine for our experiment. From now on when we refer to the machine, it is the Intel Core i7 (2.8GHz) processor having 4 cores.
+
+\IEEEPARstart{}The code itself has data dependency issues since most of the variables are global. This complicates things when we parallelize the code since OpenMP and MPI do not function well with global variables. This is due to the fact that in OpenMP, each thread will have to read/write the global variables. This leads to inconsistent values, which is detrimental to the simulation. A similar scenario arises in the case of MPI since each rank will have to read/write the global variables. However, each test particle is executed on independently. Here, each test particle is an input file having 9629 rows. The sample size indicates the number of such particles used as input, i.e. files. Each test file, of size 1.13 MB, is opened once in the program and this takes less than a second. Thereby, not contributing to the bulk of the execution time. The RAM used is approximately 16MB - 20MB (up to 40 test particles).
+
+\begin{figure}
+%\centering
+\includegraphics[scale=0.30] {code.png}
+\caption{\footnotesize Code snippet to check whether the ratio $p:q$ holds }
+\end{figure}
+
+\begin{figure*}
+\centering
+  \includegraphics[width=16cm,height=7cm]{perl.png}
+  \caption{Load imbalance in serial Perl program}
+\end{figure*}
+
+
+The working of the program is as follows:
+\begin{itemize}
+\item It looks for a constant average semi-major axis, such that the timespan checked has to contain enough data points.
+\item It runs through a huge list of potential $p:q$ resonances and checks to see the ones corresponding to the particle's semi-major axis. This is the most computational intensive part of the sequential code consisting of a series of nested for loops that is shown in Figure 3.
+\item Calculates each possible variation of $\phi$ and checks to see if $\phi$ librates.
+\end{itemize}
+The code is essentially a large nested for loop that computes $\phi$ by varying $p$ and $q$ for each test particle, which is shown in Figure 3.
+
+
+\subsubsection{Load Imbalance} 
+The primary characteristic of this program is that it has sever load balance issues. From Figure 4, it is evident that test particles 15, 24 and 27 dominate the execution time of the overall program. The test particles indicated by the green arrow are the ones that are in stable resonance with Neptune, i.e. the output. Whereas, the test particles indicated by the red arrow are the ones that are 'bad'. This means that these test particles are almost resonant with Neptune but are not entirely. So, these test particles have to go through every check done by the nested for loops shown in Figure 3. If a test particle is found resonant, then the loop terminates at the point where it passes any check. Whereas, in this case, the particles never pass any test case thereby having to go through every single check in the nested for loops. 
+
+\subsection{Serial C++}
+The simulation code was originally in Perl due to parsing requirements and merely the fact that it was the language used initially and it stayed over the years. However, Perl is not known for it's computation capabilities. Since the parallel programming models picked had no support for Perl, the original code had to be converted to a language that had support for OpenMP and MPI. Due to its sheer computation capabilities and the extensive support for OpenMP and MPI, we picked C++.
+
+\IEEEPARstart{} Initially, we decided to use compiler directives to translate the Perl main program to C using Perlcc, where the compiler back-end takes Perl source and generates C source code corresponding to the internal structures used in the Perl program [11]. It translates the parse tree into a giant switch structure that manipulates Perl structures. It is basically a straight translation of the opcode trees that the compiler built, and lays the opcode down in C, which is unreadable. Perlcc was removed from Perl 5.10. Modules (B::C, B::CC) that supposedly generate the C code are out of date, broken and unmaintained. 
+Based on the peer reviews in the official Perl website, it was stated to be buggy, unsupported, generally assumed to not work, and incomprehensible. Despite this, we went ahead to use lower version of Perl to use perlcc. This attempt ended in vain since the simple 'Hello World' C code generated was more like a dump of incomprehensible variables, and when tried to convert the original Perl program, the underlying Perl compiler crashed.  There were other alternatives such as PAR and perl2exe, but they are mere wrappers that still use underlying Perl. This does not help our cause. So, we chose to convert the Perl code to C++ manually. 
+
+\IEEEPARstart{}The serial C++ code has 428 SLOC and achieves a speedup of 8x. This will be discussed in detail in the Results section. This whole process took 43 hours of effort, where 17 hours were spent on perlcc, 20 hours in the actual manual conversion to C++, and 6 hours to debug and test. 
+
+\subsection{OpenMP}
+The majority of the effort included the actual conversion of the Perl program to C++. After which, the implementation of OpenMP was pretty straightforward and took 1 hour of effort for inserting the pragma statements in the program that contributed an additional 4 SLOC to that of the original C++ code, and 10 hours of effort for the tests that involved extensive number of threads to performance correlation. 
+
+\IEEEPARstart{}We decided to parallelize the highlighted loop in Figure 3 for simplicity reasons. This means that the test particles are grouped into buckets and each bucket is executed by a single thread. The granularity can be adjusted. For example, if there are 10 input files, then we can create 10 threads such that each thread executes a single test particle to achieve fine granularity. But this is advised against since the program execution will be dominated by the thread creation overhead and possible bottlenecks. The better approach is to have coarse granularity. For example, if we have 10 input files, then we can create 5 threads such that each thread executes 2 test particles. We notice that due to the load balance issues inherent to the program, this is not the best approach for parallelization since the entire execution time will be dominated by the execution time of the thread that executed the bad test particle. Ideally, it will be better to have additional levels of parallelism and better schedule such that we can achieve better performance. This is considered as future work.
+
+\subsection{MPI}
+Building on the underlying C++ code, the implementation of MPI took 2 hours of effort that contributed an additional 10 SLOC to that of the original C++ code, and 8 hours of effort for testing. Just like in the case of OpenMP, the execution of the individual input test particles was parallelized, i.e. the highlighted loop in Figure 3. Again, the test particles were grouped into buckets and each bucket was executed by a single rank. Since MPI follows the Single Instruction Multiple Data (SIMD) model, every rank executes the same instructions. We can optimize this further by adding parallelization within the individual ranks using OpenMP. This is left for future work since this paper considers only the basic case.\\
+
+\begin{figure}
+\centering
+  \includegraphics[scale=0.38]{c.png}
+  \caption{Comparison of execution time of serial C++ and serial Perl}
+\end{figure}
+
+\section{Results}
+Each of these results were averaged over 10 runs and the variance was negligible. Figure 5 depicts the execution time of serial Perl program and the converted serial C++ program, where lower is better. We notice that for Perl, there is a slight increase when the sample size of input test particles is 15. This is because of the bad particle 15 that consumes a lot of time as shown in Figure 4. Similarly, there is a sharp increase in execution time for sample size 25 due to the bad particle 24. We notice that there is a drastic decrease in the execution time of the serial C++ program mainly due to the computation power of the programming language. C++ is known to possess good computational ability. The execution time does increase due to the bad particles, however the increase is not as sharp as in the case of serial Perl. The execution time for C++ is smaller than that of Perl by a factor of 8.
+
+\begin{figure}
+\centering
+  \includegraphics[scale=0.54]{speedup.png}
+  \caption{Comparison of speedup with respect to serial Perl}
+\end{figure}
+
+\IEEEPARstart{} Figure 7 depicts the execution time of the OpenMP implementation for different configurations. The black bar represents the execution time of the serial C++ program, which is used as a baseline to compare how good OpenMP performs. In this graph, lower is better, especially lower than the black bar. It is pretty evident that OpenMP does not perform well since it has higher execution time than the serial C++ program in most of the cases. This is due to the fact that the execution time is governed by the bad particles. The high execution time is due to threads that end up executing more than one bad particle. Since the assignment of the thread to the test particle is random, there is a significant variation of around 10 seconds. The ideal case is that of 6 threads executing 30 test particles, which seems to provide the best result. This is considered as the ideal case of OpenMP. The worst being that of 8 threads executing 30 test particles. This is manly due to the fact of overhead due to threads.
+ 
+ \begin{figure*}
+\centering
+  \includegraphics[width=16cm,height=7cm]{openmp2.png}
+  \caption{Comparison of execution time of OpenMP implementation for varied number of threads}
+\end{figure*}
+
+\begin{figure*}
+\centering
+  \includegraphics[width=16cm,height=7.2cm]{mpi.png}
+  \caption{Comparison of execution time of MPI implementation for varied number of ranks}
+\end{figure*}
+
+ \IEEEPARstart{} Among all our implementations, MPI seems to perform the best as shown in Figure 8. Though it follows the same principle as that of OpenMP, where we divide the input test particles into buckets and each bucket is executed in parallel. This is mainly due to the lack of threads overhead that is evident in OpenMP. Again, in this graph, lower is better, especially lower than the black bar. We notice that the execution time almost always stays below that of the serial C++ program. A notable complication is that if the bucket size is too small, then a rank might get more than one bad particle. So, it is important to pick a preferable bucket size. For example, for 30 test particles with 4 ranks, both the bad particles 24 and 27 that are shown in Figure 4, come under the same bucket. Thereby dominating the overall execution time. Whereas in the case of 30 test particles with 8 ranks, all the bad particles come under different buckets. The main drawback of this is the fact that the behavior of the test particles must be known ahead of time to set the ideal bucket size. It is indeed cumbersome to predict the behavior beforehand. The best result is produced for the sample size of 30 test particles with 8 and 6 ranks. We consider the ideal case to be that of 8 ranks since it is slightly lower than that of 6 ranks.
+
+In summary, among the three implementations, the ideal case of MPI performs the best. This is followed by the ideal case of OpenMP, however we should highlight that this is conditional since there is high variance due to the random nature of the assignment of the thread to the test particle. We must credit the fact that the major improvement in performance is due to the underlying C++ programming language. Figure 6 depicts the overall performance in terms of speedup. The speedup obtained for serial C++, OpenMP and MPI, with respect to the serial Perl,  are 8x, 10x and 12x respectively. There is indeed an improvement in performance when compared to the original serial Perl program. However, in terms of parallelization, the ideal case of MPI has 1.52x speedup over serial C++, when the expected speedup was 4x since the machine had 4 cores. The speedup of OpenMP is disappointing, where the ideal case had speedup 1.28x over serial C++. This indicates that OpenMP is highly affected by load balance issues, whereas MPI seems to perform better provided the bucket size is selected favorably to enable better load distribution.
+
+
+\section{Conclusion and Future Work}
+The sheer size and complexity of the scientific applications in the field of planetary physics require supercomputing to make such computation feasible. One such applications is the Asteroid Orbit Research Problem by Scientist Kat Volk of the Planetary Science Department, University of Arizona. It is written in serial Perl and takes approximately 40 minutes, for a sample set of mere 30 test particles. We studied the original serial Perl code and identified the hotspots and detected a sever load balancing issue due to the bad test particles, which are almost resonant with Neptune but are not entirely. If a test particle is found resonant, then the loop terminates at the point where it passes any check. Whereas, in this case, the particles never pass any test case thereby having to go through every single check in the nested for loops.  Thus, dominating the overall execution time of the program.
+
+ \IEEEPARstart{}
+ We converted the serial Perl code to C++ and parallelized this using OpenMP and MPI. The overall principle was that the input test particles were grouped into buckets and each bucket is executed by a single thread or rank depending if its OpenMP or MPI respectively. We noticed that the speedup obtained for serial C++, OpenMP and MPI, with respect to the serial Perl, are 8x, 10x and 12x respectively. Thus establishing the fact that among the three implementations, the ideal case of MPI performed the best. We notice that the major improvement in performance is due to the underlying C++ programming language. We are familiar with how powerful C++ is. However, the speedup of OpenMP was unsatisfactory since the ideal case had speedup 1.28x over serial C++. This indicates that OpenMP is highly affected by load balance issues, whereas MPI seems to perform better provided the bucket size is selected favorably to enable better load distribution. We also noticed that the most effort was required for the manual conversion of Perl to C++ that took a total of 43 hours. However, the effort required for implementing OpenMP and MPI was much lesser, i.e. 11 and 10 hours respectively. Once the C++ code was written, there was very little change required in terms of SLOC for the OpenMP and MPI implementation. The C++ program had 428 SLOC, which is almost comparable to the 259 SLOC of the serial Perl program. Furthermore, OpenMP had 4   and MPI had 10 SLOC added to the original C++ program.
+ 
+Though OpenMP did not provide the expected speedup, it can be optimized by setting thread affinity, which indicates that each thread will be assigned to a particular core and will not be moved around due to context switching. Moreover, the scheduling of the OpenMP threads can be optimized by setting it to dynamic to achieve better performance. There can be additional levels of parallelization besides the very basic level considered in this paper. There are other prospective loops shown in Figure 3 that can be parallelized. For MPI, additional parallelization can be achieved within the individual ranks using OpenMP. This is essentially considered for future work.\\
+
+\begin{thebibliography}{1}
+\bibitem{}
+https://www-pls.llnl.gov/?url=science\_and\_technology-materials-thunder
+\bibitem{}
+Volk, K, Murray-Clay, R.; Gladman, B.J.; Lawler, S.; Bannister, M.T.; Kavelaars, J.J.; Petit, J.M.; Gwyn, S.; Alexandersen, M.; Chen, Y.T.; Lykawka, P.; Ip, W.; and Lin, H.W., 2015.{\em OSSOS III ? Resonant Trans-Neptunian Populations: Constraints from the first quarter of the Outer Solar System Origins Survey}. Submitted to AJ.
+\bibitem{}
+Herb Sutter, "The Free Lunch Is Over: A Fundamental Turn Toward Concurrency in Software",{\em Dr. Dobb's Journal, March 2005}
+\bibitem{}
+Nicholas J. Wright, Wayne Pfeiffer, Allan Snavely, "Characterizing Parallel Scaling of Scientific Applications using IPM " , {\em The 10th LCI International Conference on High-Performance Clustered Computing, March 10-12, 2009}
+\bibitem{}
+Ciegis, R., Henty, D., Kågström, B., ´ilinskas, J., "Parallel Scientific Computing and Optimization",{\em Springer Publications}
+\bibitem{}
+M. Guo, "Automatic parallelization and optimization for irregular scientific applications",{\em Parallel and Distributed Processing Symposium, 2004. Proceedings. 18th International }
+\bibitem{}
+Hongtao Zhong, Mojtaba Mehrara, Steve Lieberman, Scott Mahlke, "Uncovering hidden loop level parallelism in sequential applications",{\em High Performance Computer Architecture, 2008. HPCA 2008. IEEE 14th International Symposium on 16-20 Feb. 2008 }
+\bibitem{}
+Arun Raman, Hanjun Kim, Thomas R. Mason, Thomas B. Jablin, David I. August, "Speculative Parallelization Using Software Multi-threaded Transactions",{\em ASPLOS XV Proceedings of the fifteenth edition of ASPLOS on Architectural support for programming languages and operating systems, NY 2010 }
+\bibitem{}
+Barbara Chapman, Gabriele Jost, Ruud van der Pas, "Using OpenMP: Portable Shared Memory Parallel Programming"
+\bibitem{}
+Norman Matloff,"PerlDSM: A Distributed Shared Memory System for Perl",{\em Proceedings of PDPTA  '02}
+\bibitem{}
+http://perldoc.perl.org/5.8.9/perlcompile.html
+\end{thebibliography}
+
+
+\end{document}
+
+

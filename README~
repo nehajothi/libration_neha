@@ -1,0 +1,37 @@
+Author : Neha Jothi
+
+1) libration_serialC++.cpp
+Description: This is the C++ implementation of the serial Perl Libration program written by Kat Volk 
+Input: inputs.txt 
+Output: securely-resonant-test-particles
+        partially-resonant-test-particles
+        gnu plot of resonance, which is currently disabled
+Compilation: g++ -std=c++0x libration_serialC++.cpp -o serial
+-std=c++0x being optional depending on your compiler
+Execution: ./serial
+
+2) libration_openmp.cpp
+Description: This is the OpenmP + C++ implementation of the serial Perl Libration program written by Kat Volk 
+Input: inputs.txt 
+Output: securely-resonant-test-particles
+        partially-resonant-test-particles
+        gnu plot of resonance, which is currently disabled
+OpenMP Number of threads - can be set by the #pragma omp parallel for statement by specifying num_threads(intended no. of threads)
+Compilation: g++ -std=c++0x -fopenmp lc_openmp.cpp -o open
+-std=c++0x being optional depending on your compiler
+Execution: ./open
+
+3) libration_mpi.cpp
+Description: This is the MPI + C++ implementation of the serial Perl Libration program written by Kat Volk 
+Input: inputs.txt 
+Output: securely-resonant-test-particles
+        partially-resonant-test-particles
+        gnu plot of resonance, which is currently disabled
+MPI number of ranks - can be provided at command line while running by using -np
+Compilation: mpiCC -std=c++0x libration_mpi.cpp -o mpi
+mpiCC depends on the underlying MPI compiler being used for C++
+-std=c++0x being optional depending on your compiler
+Execution: mpirun -np <Number of ranks> ./mpi
+
+4)finalReport.tex
+The latex source code for the CS620 final report
